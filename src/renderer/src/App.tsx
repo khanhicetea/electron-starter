@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import electronLogo from './assets/electron.svg'
-import { orpc } from './lib/orpc'
+import electronLogo from '@/assets/electron.svg'
+import { orpc } from '@/lib/orpc'
 
 function App(): React.JSX.Element {
   const [message, setMessage] = useState('')

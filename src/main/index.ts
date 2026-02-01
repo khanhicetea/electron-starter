@@ -4,8 +4,8 @@ import { onError } from '@orpc/shared'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { closeDatabase, runMigrations } from './db'
-import { router } from '../shared/rpc'
+import { closeDatabase, runMigrations } from '#/main/db'
+import { router } from '#/shared/rpc'
 
 // Create the RPC handler with the router
 function createRPCHandler() {

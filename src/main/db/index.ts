@@ -3,8 +3,8 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import { Kysely, Migrator, SqliteDialect } from 'kysely'
 import path from 'path'
-import type { Database as DatabaseSchema } from './types'
-import * as migration001 from './migrations/001_create_notes'
+import type { Database as DatabaseSchema } from '#/main/db/types'
+import * as migration001 from '#/main/db/migrations/001_create_notes'
 
 // Get database path based on environment
 function getDatabasePath(): string {

@@ -2,7 +2,7 @@ import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/message-port'
 import { createTanstackQueryUtils } from '@orpc/tanstack-query'
 import type { RouterClient } from '@orpc/server'
-import type { AppRouter } from '../../../shared/rpc'
+import type { AppRouter } from '#/shared/rpc'
 
 // Create MessageChannel for communication
 const { port1: clientPort, port2: serverPort } = new MessageChannel()
