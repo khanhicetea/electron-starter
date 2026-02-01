@@ -4,6 +4,7 @@ import { onError } from '@orpc/shared'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
+import { closeDatabase, runMigrations } from './db'
 import { router } from '../shared/rpc'
 
 // Create the RPC handler with the router
@@ -47,12 +48,15 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  // Run database migrations
+  await runMigrations()
 
   // ORPC Server - Handle MessagePort from renderer via preload
   const handler = createRPCHandler()
@@ -73,7 +77,8 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
+  await closeDatabase()
   if (process.platform !== 'darwin') {
     app.quit()
   }

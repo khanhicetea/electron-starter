@@ -4,3 +4,7 @@ out
 .DS_Store
 .eslintcache
 *.log*
+
+# SQLite databases
+*.sqlite
+*.sqlite3
