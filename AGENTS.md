@@ -4,7 +4,7 @@
 
 **Name:** electron-stack
 **Type:** Desktop application
-**Description:** An Electron application with React and TypeScript, scaffolded with electron-vite.
+**Description:** An Electron application with React, TypeScript, TanStack Router, and SQLite database.
 
 ## Tech Stack
 
@@ -13,41 +13,64 @@
 | Framework | Electron v39 |
 | Build Tool | electron-vite v5 |
 | Frontend | React v19 + TypeScript v5 |
+| Router | TanStack Router v1 |
+| Data Fetching | TanStack Query v5 |
+| IPC | oRPC (type-safe via MessagePort) |
+| Database | SQLite (better-sqlite3) + Kysely |
+| Styling | Tailwind CSS v4 + shadcn/ui |
 | Bundler | Vite v7 |
 | Package Manager | pnpm |
 | Linting | ESLint v9 |
 | Formatting | Prettier |
-| Distribution | electron-builder |
 
 ## Project Structure
 
 ```
 electron-stack/
 ├── src/
-│   ├── main/              # Electron main process
-│   │   └── index.ts       # Main entry, window creation, IPC handlers
-│   ├── preload/           # Preload scripts (bridge main <-> renderer)
-│   │   ├── index.ts       # Context bridge setup
-│   │   └── index.d.ts     # TypeScript declarations for exposed APIs
-│   └── renderer/          # Frontend React app
-│       ├── index.html     # HTML entry point
-│       └── src/
-│           ├── main.tsx   # React entry point
-│           ├── App.tsx    # Root component
-│           ├── env.d.ts   # Environment declarations
-│           ├── components/
-│           │   └── Versions.tsx  # Displays Electron/Chrome/Node versions
-│           └── assets/
-│               ├── base.css      # CSS variables, resets
-│               └── main.css      # Main styles
-├── build/                 # Build resources (icons, entitlements)
-├── resources/             # App resources (icon.png)
-├── out/                   # Compiled output (main, preload, renderer)
-├── electron.vite.config.ts  # electron-vite configuration
-├── electron-builder.yml   # electron-builder config for distribution
-├── tsconfig.json          # Root TypeScript config (references)
-├── tsconfig.node.json     # TS config for main/preload
-└── tsconfig.web.json      # TS config for renderer
+│   ├── main/                    # Electron main process
+│   │   ├── index.ts             # Main entry, window creation, oRPC handler
+│   │   └── db/                  # Database layer
+│   │       ├── index.ts         # Kysely instance & migration runner
+│   │       ├── types.ts         # Database type definitions
+│   │       ├── migrate.ts       # CLI migration script
+│   │       └── migrations/      # Migration files
+│   │           └── 001_create_notes.ts
+│   ├── preload/                 # Preload scripts
+│   │   ├── index.ts             # Context bridge, oRPC MessagePort forwarding
+│   │   └── index.d.ts           # TypeScript declarations
+│   ├── renderer/                # Frontend React app
+│   │   ├── index.html           # HTML entry point
+│   │   ├── main.tsx             # React entry, router setup
+│   │   ├── styles.css           # Tailwind CSS
+│   │   ├── routes/              # TanStack Router file-based routes
+│   │   │   ├── __root.tsx       # Root layout with sidebar
+│   │   │   ├── index.tsx        # Dashboard page
+│   │   │   ├── notes.tsx        # Notes CRUD page
+│   │   │   ├── database.tsx     # Database info page
+│   │   │   ├── settings.tsx     # Settings page
+│   │   │   └── routeTree.gen.ts # Generated route tree
+│   │   ├── components/          # React components
+│   │   │   └── ui/              # shadcn/ui components
+│   │   ├── hooks/               # React hooks
+│   │   ├── lib/                 # Utilities
+│   │   │   ├── orpc.ts          # oRPC client setup
+│   │   │   ├── QueryProvider.tsx
+│   │   │   └── utils.ts
+│   │   └── assets/              # Static assets
+│   └── shared/                  # Shared between main/renderer
+│       └── rpc/                 # oRPC router definitions
+│           ├── index.ts         # Re-exports
+│           ├── router.ts        # Main router
+│           ├── demo.ts          # Demo procedures
+│           └── notes.ts         # Notes CRUD procedures
+├── build/                       # Build resources (icons, entitlements)
+├── resources/                   # App resources (icon.png)
+├── docs/                        # Documentation
+├── electron.vite.config.ts      # electron-vite configuration
+├── electron-builder.yml         # Distribution config
+├── components.json              # shadcn/ui configuration
+└── tsconfig.*.json              # TypeScript configs
 ```
 
 ## Key Commands
@@ -62,95 +85,179 @@ electron-stack/
 | `pnpm typecheck` | Run TypeScript type checking |
 | `pnpm lint` | Run ESLint |
 | `pnpm format` | Format code with Prettier |
+| `pnpm db:migrate` | Run database migrations |
+| `pnpm db:migrate:dev` | Run migrations on dev.sqlite |
+| `pnpm rebuild` | Rebuild native modules (better-sqlite3) |
 
 ## Architecture
 
 ### Three-Process Model
 
-1. **Main Process** (`src/main/index.ts`)
+1. **Main Process** (`src/main/`)
    - Runs in Node.js environment
    - Creates/manages BrowserWindow
-   - Handles IPC from renderer
-   - Access to all Node.js/Electron APIs
+   - Handles oRPC requests via MessagePort
+   - Database access (SQLite + Kysely)
+   - Full access to Node.js/Electron APIs
 
-2. **Preload Scripts** (`src/preload/index.ts`)
+2. **Preload Scripts** (`src/preload/`)
    - Bridge between main and renderer
-   - Uses `contextBridge` to expose safe APIs
-   - Exposes `window.electron` (electronAPI) and `window.api` (custom APIs)
+   - Forwards MessagePort for oRPC communication
+   - Exposes `window.electron` (electron-toolkit API)
 
 3. **Renderer Process** (`src/renderer/`)
-   - React application
-   - Runs in Chromium browser context
-   - Accesses main process via exposed `window.electron` and `window.api`
+   - React application with TanStack Router
+   - TanStack Query for data fetching/caching
+   - oRPC client for type-safe IPC calls
+   - shadcn/ui components with Tailwind CSS
 
-### IPC Communication
+### oRPC Communication
+
+Type-safe IPC via MessagePort:
 
 ```typescript
-// Main process (src/main/index.ts)
-ipcMain.on('ping', () => console.log('pong'))
+// 1. Define procedure (src/shared/rpc/notes.ts)
+const base = os.$context<{}>()
+export const notesRouter = {
+  getAll: base.handler(async () => {
+    return await db.selectFrom('notes').selectAll().execute()
+  })
+}
 
-// Renderer (via preload)
-window.electron.ipcRenderer.send('ping')
+// 2. Main process handles requests (src/main/index.ts)
+const handler = new RPCHandler(router)
+ipcMain.on('orpc:connect', (event) => {
+  const [serverPort] = event.ports
+  handler.upgrade(serverPort)
+})
+
+// 3. Renderer calls via client (src/renderer/lib/orpc.ts)
+export const orpc = createTanstackQueryUtils(orpcClient)
+
+// 4. Use in React component
+const { data } = useQuery(orpc.notes.getAll.queryOptions({}))
+```
+
+### Database Layer
+
+- **Kysely** for type-safe SQL queries
+- **better-sqlite3** as SQLite driver
+- Auto-migration on app startup
+- Dev: `./dev.sqlite` | Prod: `{userData}/app.sqlite`
+
+```typescript
+// Define types (src/main/db/types.ts)
+export interface Database {
+  notes: NotesTable
+}
+
+// Query with Kysely
+const notes = await db.selectFrom('notes').selectAll().execute()
+
+// Create migration (src/main/db/migrations/xxx.ts)
+export async function up(db: Kysely<unknown>) {
+  await db.schema.createTable('notes')...
+}
+```
+
+### Routing
+
+File-based routing with TanStack Router:
+
+```
+src/renderer/routes/
+├── __root.tsx     # Root layout (sidebar, header)
+├── index.tsx      # / (Dashboard)
+├── notes.tsx      # /notes
+├── database.tsx   # /database
+└── settings.tsx   # /settings
+```
+
+```typescript
+// Navigation with Link
+import { Link } from '@tanstack/react-router'
+<Link to="/notes">Notes</Link>
+
+// Route definition
+export const Route = createFileRoute('/notes')({
+  component: NotesComponent,
+})
 ```
 
 ## Path Aliases
 
-| Alias | Path |
-|-------|------|
-| `@renderer/*` | `src/renderer/src/*` |
+| Alias | Path | Used In |
+|-------|------|---------|
+| `@/*` | `src/renderer/*` | Renderer only |
+| `#/main/*` | `src/main/*` | Main, preload, shared |
+| `#/preload/*` | `src/preload/*` | Main, preload, shared |
+| `#/shared/*` | `src/shared/*` | All processes |
 
-## UI
+## UI Components
 
 - Tailwind CSS v4
-- Use shadcn/ui components in renderer
-- Example command for adding a component : `pnpm dlx shadcn@latest add -p ./src/renderer/components/ui [component_name]`
-- shadcn/ui components are pre-configured with tailwind CSS
-- IMPORTANT : these shadcn/ui components use baseUI, not RadixUI (use `render={}` prop instead of `asChild`)
-- Current theme named 'Lyra' which has sharp edges so don't use rounded corners unless I specifically want them
-- The shadcn/ui components in ./src/renderer/components/ui are read-only, don't modify them directly, skip typechecks for them
+- shadcn/ui components in `src/renderer/components/ui/`
+- Theme: **Lyra** (sharp edges, avoid rounded corners unless specified)
+- Icons: **Lucide React**
+- Add components: `pnpm dlx shadcn@latest add -p ./src/renderer/components/ui [component]`
+- **Important**: shadcn/ui components use **Base UI** (use `render={}` prop, not `asChild`)
+- shadcn/ui components are read-only - don't modify them directly
+
+## Adding New Features
+
+### Add a New Database Table
+
+1. Create migration: `src/main/db/migrations/002_xxx.ts`
+2. Update types: `src/main/db/types.ts`
+3. Register migration in `src/main/db/index.ts`
+4. Add RPC procedures: `src/shared/rpc/xxx.ts`
+5. Export from `src/shared/rpc/router.ts`
+
+### Add a New Page
+
+1. Create route file: `src/renderer/routes/newpage.tsx`
+2. Add navigation item in `src/renderer/components/ui/app-sidebar.tsx`
+
+### Add an RPC Procedure
+
+```typescript
+// src/shared/rpc/router.ts
+import { newRouter } from './new'
+
+export const router = {
+  demo: demoRouter,
+  notes: notesRouter,
+  new: newRouter,  // Add here
+}
+
+// src/shared/rpc/new.ts
+const base = os.$context<{}>()
+export const newRouter = {
+  doSomething: base.handler(async () => { ... })
+}
+
+// Use in renderer
+const { data } = useQuery(orpc.new.doSomething.queryOptions({}))
+```
 
 ## Security
 
-- Content Security Policy enabled in `index.html`
-- Context isolation enabled (sandbox: false for preload access)
+- Context isolation enabled
+- sandbox: false (required for preload access)
 - External links open in system browser
+- No direct IPC exposure - all via oRPC
 
 ## Distribution
 
 Configured in `electron-builder.yml`:
 - **App ID:** `com.electron.app`
-- **Platforms:** macOS (dmg), Windows (NSIS installer), Linux (AppImage, snap, deb)
+- **Platforms:** macOS (dmg), Windows (NSIS), Linux (AppImage, snap, deb)
 - **Auto-update:** Configured for generic provider
 
 ## Development Notes
 
-1. **Adding IPC handlers:** Add in `src/main/index.ts`, expose in `src/preload/index.ts`
-2. **Adding components:** Create in `src/renderer/src/components/`
-3. **Adding pages:** Currently single-page, add routing (e.g., react-router) if needed
-4. **Environment detection:** Use `is.dev` from `@electron-toolkit/utils`
+1. **Hot reload:** Renderer reloads on file changes, main process restarts
+2. **Type safety:** oRPC provides end-to-end type safety from main to renderer
+3. **Database:** Migrations run automatically on app start
+4. **Native modules:** Run `pnpm rebuild` after changing Electron version
 5. **Asset imports:** Use `?asset` suffix for assets in main process
-
-## Common Patterns
-
-### Expose API to Renderer
-
-```typescript
-// preload/index.ts
-const api = {
-  doSomething: () => ipcRenderer.invoke('do-something')
-}
-contextBridge.exposeInMainWorld('api', api)
-
-// main/index.ts
-ipcMain.handle('do-something', async () => {
-  // handle request
-  return result
-})
-
-// renderer (React)
-const result = await window.api.doSomething()
-```
-
-### Type-safe Window APIs
-
-Update `src/preload/index.d.ts` to add type declarations for custom APIs.
