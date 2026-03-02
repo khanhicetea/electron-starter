@@ -107,6 +107,7 @@ window.electron.ipcRenderer.send('ping')
 - shadcn/ui components are pre-configured with tailwind CSS
 - IMPORTANT : these shadcn/ui components use baseUI, not RadixUI (use `render={}` prop instead of `asChild`)
 - Current theme named 'Lyra' which has sharp edges so don't use rounded corners unless I specifically want them
+- The shadcn/ui components in ./src/renderer/components/ui are read-only, don't modify them directly, skip typechecks for them
 
 ## Security
 

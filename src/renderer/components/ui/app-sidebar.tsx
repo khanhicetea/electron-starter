@@ -21,46 +21,40 @@ import {
   Settings,
   Zap,
 } from "lucide-react"
+import { Link, useLocation } from '@tanstack/react-router'
 
 const navItems = [
   {
     title: "Dashboard",
-    url: "#home",
+    to: "/",
     icon: Home,
-    id: "home",
   },
   {
     title: "Notes",
-    url: "#notes",
+    to: "/notes",
     icon: FileText,
-    id: "notes",
   },
   {
     title: "Database",
-    url: "#database",
+    to: "/database",
     icon: Database,
-    id: "database",
   },
   {
     title: "Settings",
-    url: "#settings",
+    to: "/settings",
     icon: Settings,
-    id: "settings",
   },
 ]
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  activeView: string
-  onViewChange: (view: string) => void
-}
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const location = useLocation()
 
-export function AppSidebar({ activeView, onViewChange, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<a href="#" />}>
+            <SidebarMenuButton size="lg" render={<Link to="/" />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Zap className="size-4" />
               </div>
@@ -78,12 +72,11 @@ export function AppSidebar({ activeView, onViewChange, ...props }: AppSidebarPro
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
+                <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton
-                    render={<a href={item.url} />}
+                    render={<Link to={item.to} />}
                     tooltip={item.title}
-                    isActive={activeView === item.id}
-                    onClick={() => onViewChange(item.id)}
+                    isActive={location.pathname === item.to}
                   >
                     <item.icon className="size-4" />
                     <span>{item.title}</span>
@@ -97,7 +90,7 @@ export function AppSidebar({ activeView, onViewChange, ...props }: AppSidebarPro
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="sm">
+            <SidebarMenuButton size="sm" render={<Link to="/settings" />}>
               <Settings className="size-4" />
               <span>Settings</span>
             </SidebarMenuButton>
