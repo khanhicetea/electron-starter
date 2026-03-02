@@ -18,10 +18,10 @@ import {
   Home,
   FileText,
   Database,
-  Settings,
   Zap,
 } from "lucide-react"
 import { Link, useLocation } from '@tanstack/react-router'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const navItems = [
   {
@@ -38,11 +38,6 @@ const navItems = [
     title: "Database",
     to: "/database",
     icon: Database,
-  },
-  {
-    title: "Settings",
-    to: "/settings",
-    icon: Settings,
   },
 ]
 
@@ -90,10 +85,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="sm" render={<Link to="/settings" />}>
-              <Settings className="size-4" />
-              <span>Settings</span>
-            </SidebarMenuButton>
+            <ThemeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

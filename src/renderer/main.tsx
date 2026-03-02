@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { QueryClient } from '@tanstack/react-query'
 import { QueryProvider } from '@/lib/QueryProvider'
+import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 // Import the generated route tree
@@ -30,10 +31,12 @@ declare module '@tanstack/react-router' {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryProvider>
-      <TooltipProvider>
-        <RouterProvider router={router} />
-      </TooltipProvider>
-    </QueryProvider>
+    <ThemeProvider defaultTheme="system" storageKey="electron-stack-theme">
+      <QueryProvider>
+        <TooltipProvider>
+          <RouterProvider router={router} />
+        </TooltipProvider>
+      </QueryProvider>
+    </ThemeProvider>
   </StrictMode>
 )
