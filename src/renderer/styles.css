@@ -55,6 +55,48 @@
   }
 }
 
+/* Custom scrollbar styling for native app feel */
+:root {
+  --scrollbar-thumb: hsl(220 9% 46%);
+  --scrollbar-track: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scrollbar-thumb: hsl(215 20% 35%);
+    --scrollbar-track: transparent;
+  }
+}
+
+/* Modern browsers (Chrome 121+, Firefox, Safari) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Legacy WebKit browsers (older Chrome/Safari/Electron) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 9% 55%);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
