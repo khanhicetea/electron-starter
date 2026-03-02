@@ -105,7 +105,8 @@ window.electron.ipcRenderer.send('ping')
 - Use shadcn/ui components in renderer
 - Example command for adding a component : `pnpm dlx shadcn@latest add -p ./src/renderer/components/ui [component_name]`
 - shadcn/ui components are pre-configured with tailwind CSS
-- This shadcn/ui components use baseUI, not RadixUI (use `render={}` prop instead of `asChild`)
+- IMPORTANT : these shadcn/ui components use baseUI, not RadixUI (use `render={}` prop instead of `asChild`)
+- Current theme named 'Lyra' which has sharp edges so don't use rounded corners unless I specifically want them
 
 ## Security
 
