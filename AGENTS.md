@@ -2,8 +2,8 @@
 
 ## Project Overview
 
-**Name:** electron-stack  
-**Type:** Desktop application  
+**Name:** electron-stack
+**Type:** Desktop application
 **Description:** An Electron application with React and TypeScript, scaffolded with electron-vite.
 
 ## Tech Stack
@@ -99,14 +99,13 @@ window.electron.ipcRenderer.send('ping')
 |-------|------|
 | `@renderer/*` | `src/renderer/src/*` |
 
-## CSS Variables (Design Tokens)
+## UI
 
-Defined in `src/renderer/src/assets/base.css`:
-
-- Colors: `--ev-c-white`, `--ev-c-black`, `--ev-c-gray-*`
-- Text: `--ev-c-text-1` (primary), `--ev-c-text-2` (secondary), `--ev-c-text-3` (tertiary)
-- Backgrounds: `--color-background`, `--color-background-soft`, `--color-background-mute`
-- Buttons: `--ev-button-alt-*`
+- Tailwind CSS v4
+- Use shadcn/ui components in renderer
+- Example command for adding a component : `pnpm dlx shadcn@latest add -p ./src/renderer/components/ui [component_name]`
+- shadcn/ui components are pre-configured with tailwind CSS
+- This shadcn/ui components use baseUI, not RadixUI (use `render={}` prop instead of `asChild`)
 
 ## Security
 
